@@ -1,5 +1,6 @@
 require 'virtus'
 require 'virtus/cycles'
+require 'virtus/visitors'
 
 class C
   include Virtus
@@ -27,4 +28,7 @@ class Root
   attribute :b, B
 end
 
-puts Virtus::Cycles::Detector.new(Root).edges
+state = Virtus::Cycles::CycleDetector.new
+visitor = Virtus::Visitors::ClassGraph.new(state)
+visitor.visit(Root)
+puts state.inspect

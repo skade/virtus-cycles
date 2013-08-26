@@ -1,8 +1,9 @@
 require "virtus/cycles/version"
+require "virtus/visitors"
 
 module Virtus
   module Cycles
-    class State
+    class CycleDetector
       include Virtus
       
       ARRAY_HASH = ->(state,attribute) { Hash.new { |h,k| h[k] = []} }
@@ -13,59 +14,30 @@ module Virtus
       attribute :cross, Hash[Class => Set[Class]], :default => ARRAY_HASH
       attribute :edges, Hash[Class => Set[Class]], :default => ARRAY_HASH
       attribute :forward, Hash[Class => Set[Class]], :default => ARRAY_HASH
-    end
 
-    class Detector
-      attr_accessor :root, :state
-
-      def initialize(root)
-        self.root = root
+      def current
+        path.last
       end
 
-      def detect!
-        state = State.new
-        self.state = detect_recursive(root, state)
+      def on_collection(attribute)
+        connect!(attribute.options[:member_type])
       end
 
-      def evaluated?
-        detect! unless state
-        !!state
+      def on_embedded(attribute)
+        connect!(attribute.options[:primitive])
       end
 
-      def cycles?
-        detect! unless state
-        !state.cycles.empty?
+      def on_scalar(attribute)
+        #ignore that
       end
 
-      def crosses?
-        detect! unless state
-        !state.cycles.empty?
+      def on_visit(type)
+        visited.push type
+        path.push type
       end
 
-      def edges
-        detect! unless state
-        state.edges
-      end
-
-      def associated_types(node, &block)
-        node.attribute_set.each do |a|
-          if collection?(a) && embedded?(member_type(a))
-            next_type = member_type(a)
-          elsif embedded?(a)
-            next_type = embedded_primitive(a)
-          else
-            next
-          end
-          yield next_type
-        end
-      end
-
-      def collection?(attribute)
-        attribute.class < Virtus::Attribute::Collection
-      end
-
-      def embedded?(attribute)
-        attribute.class < Virtus::Attribute::EmbeddedValue
+      def on_leave(type)
+        path.pop
       end
 
       def member_type(attribute)
@@ -76,36 +48,33 @@ module Virtus
         attribute.options[:primitive]
       end
 
-      def detect_recursive(node, state)
-        state.visited.push node
-        state.path.push node
-        find_connections(node, state)
-        state.path.pop
-        state
-      end
-
-      def find_connections(node, state)
-        associated_types(node) do |next_node|
-          state.edges[node] << next_node
-
-          if cycle?(state, next_node)
-            state.cycle[node] << next_node
-          elsif cross?(state, next_node)
-            state.cross[node] << next_node
-          else
-            state.forward[node] << next_node
-            detect_recursive(next_node, state)
-          end
+      def connect!(next_node)
+        edges[current] << next_node
+        if cycle?(next_node)
+          cycle[current] << next_node
+          throw(:next)
+        elsif cross?(next_node)
+          cross[current] << next_node
+          throw(:next)
+        else
+          forward[current] << next_node
         end
-
       end
 
-      def cycle?(state, next_node)
-        state.path.include?(next_node)
+      def cycle?(next_node)
+        path.include?(next_node)
       end
 
-      def cross?(state, next_node)
-        state.visited.include?(next_node)
+      def cross?(next_node)
+        visited.include?(next_node)
+      end
+
+      def cycles?
+        cycles.any?
+      end
+
+      def crosses?
+        crosses.any?
       end
     end
   end
