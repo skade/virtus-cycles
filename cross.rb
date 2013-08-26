@@ -28,7 +28,10 @@ class Root
   attribute :b, B
 end
 
-state = Virtus::Cycles::CycleDetector.new
+state = Virtus::Cycles::CycleMarker.new
 visitor = Virtus::Visitors::ClassGraph.new(state)
 visitor.visit(Root)
+puts C.attribute_set[:c].cyclic?
+puts Root.attribute_set[:a].cyclic?
 puts state.inspect
+puts state.cyclic_types.inspect

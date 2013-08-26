@@ -3,6 +3,19 @@ require "virtus/visitors"
 
 module Virtus
   module Cycles
+    # A type that marks an attribute as potentially cyclic.
+    module Cyclic
+      def cyclic?
+        true
+      end
+    end
+
+    module NonCyclic
+      def cyclic?
+        false
+      end
+    end
+
     class CycleDetector
       include Virtus
       
@@ -20,11 +33,11 @@ module Virtus
       end
 
       def on_collection(attribute)
-        connect!(attribute.options[:member_type])
+        connect!(attribute.options[:member_type], attribute)
       end
 
       def on_embedded(attribute)
-        connect!(attribute.options[:primitive])
+        connect!(attribute.options[:primitive], attribute)
       end
 
       def on_scalar(attribute)
@@ -48,16 +61,28 @@ module Virtus
         attribute.options[:primitive]
       end
 
-      def connect!(next_node)
+      def cyclic!(next_node, attribute)
+        cycle[current] << next_node
+        throw(:next)
+      end
+
+      def crossing!(next_node, attribute)
+        cross[current] << next_node
+        throw(:next)
+      end
+
+      def forward!(next_node, attribute)
+        forward[current] << next_node
+      end
+
+      def connect!(next_node, attribute)
         edges[current] << next_node
         if cycle?(next_node)
-          cycle[current] << next_node
-          throw(:next)
+          cyclic!(next_node, attribute)
         elsif cross?(next_node)
-          cross[current] << next_node
-          throw(:next)
+          crossing!(next_node, attribute)
         else
-          forward[current] << next_node
+          forward!(next_node, attribute)
         end
       end
 
@@ -70,11 +95,32 @@ module Virtus
       end
 
       def cycles?
-        cycles.any?
+        cycle.any?
       end
 
       def crosses?
-        crosses.any?
+        cross.any?
+      end
+
+      def cyclic_types
+        cycle.values.flatten
+      end
+    end
+
+    class CycleMarker < CycleDetector
+      def cyclic!(next_node, attribute)
+        attribute.extend(Cyclic)
+        super
+      end
+
+      def cross!(next_node, attribute)
+        attribute.extend(NonCyclic)
+        super
+      end
+
+      def forward!(next_node, attribute)
+        attribute.extend(NonCyclic)
+        super
       end
     end
   end
