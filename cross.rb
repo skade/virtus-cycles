@@ -5,12 +5,14 @@ require 'virtus/visitors/class_graph'
 class C
   include Virtus
 
+  # this is a trivial cycle
   attribute :c, C
 end
 
 class B
   include Virtus
 
+  # this is a cross
   attribute :c, C
 end
 
@@ -26,6 +28,9 @@ class Root
   attribute :name
   attribute :a, A
   attribute :b, B
+
+  # this is a forward (currently undetected)
+  attribute :c, C
 end
 
 state = Virtus::Cycles::CycleMarker.new
