@@ -30,7 +30,7 @@ class Root
   attribute :b, B
 
   # this is a forward (currently undetected)
-  attribute :c, C
+  # attribute :c, C
 end
 
 state = Virtus::Cycles::CycleMarker.new
