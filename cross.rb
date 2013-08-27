@@ -1,6 +1,6 @@
 require 'virtus'
 require 'virtus/cycles'
-require 'virtus/visitors'
+require 'virtus/visitors/class_graph'
 
 class C
   include Virtus
