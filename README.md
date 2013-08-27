@@ -1,24 +1,30 @@
 # Virtus::Cycles
 
-A gem that detects possible cycles in virtus object graphs.
+A gem that detects possible cycles in virtus class graphs.
+
+Also includes a very rough implementation for walking virtus graphs.
+
+## Warning
+
+This is one of my train hacks. Possible to be abandoned soon.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Currently git only:
 
-    gem 'virtus-cycles'
+```
+git clone git@github.com:skade/virtus-cycles.git
+```
 
-And then execute:
+or
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install virtus-cycles
+```
+gem 'virtus-cycles', :git => "git@github.com:skade/virtus-cycles.git"
+```
 
 ## Usage
 
-TODO: Write usage instructions here
+Currently, have a look at `cross.rb` for an example for marking attributes to be possibly cyclic.
 
 ## Contributing
 
